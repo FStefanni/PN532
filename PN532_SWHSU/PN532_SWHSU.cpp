@@ -1,6 +1,6 @@
 
-#include "PN532/PN532_SWHSU/PN532_SWHSU.h"
-#include "PN532/PN532/PN532_debug.h"
+#include "PN532_SWHSU.h"
+#include "../PN532/PN532_debug.h"
 
 
 PN532_SWHSU::PN532_SWHSU(SoftwareSerial &serial)
@@ -46,20 +46,20 @@ int8_t PN532_SWHSU::writeCommand(const uint8_t *header, uint8_t hlen, const uint
     }
 
     command = header[0];
-    
+
     _serial->write((uint8_t) PN532_PREAMBLE);
     _serial->write((uint8_t) PN532_STARTCODE1);
     _serial->write((uint8_t) PN532_STARTCODE2);
-    
+
     uint8_t length = hlen + blen + 1;   // length of data field: TFI + DATA
     _serial->write(length);
     _serial->write(~length + 1);         // checksum of length
-    
+
     _serial->write((uint8_t) PN532_HOSTTOPN532);
     uint8_t sum = PN532_HOSTTOPN532;    // sum of TFI + DATA
 
     DMSG("\nWrite: ");
-    
+
     _serial->write(header, hlen);
     for (uint8_t i = 0; i < hlen; i++) {
         sum += header[i];
@@ -73,7 +73,7 @@ int8_t PN532_SWHSU::writeCommand(const uint8_t *header, uint8_t hlen, const uint
 
         DMSG_HEX(body[i]);
     }
-    
+
     uint8_t checksum = ~sum + 1;            // checksum of TFI + DATA
     _serial->write(checksum);
     _serial->write((uint8_t) PN532_POSTAMBLE);
@@ -84,9 +84,9 @@ int8_t PN532_SWHSU::writeCommand(const uint8_t *header, uint8_t hlen, const uint
 int16_t PN532_SWHSU::readResponse(uint8_t buf[], uint8_t len, uint16_t timeout)
 {
     uint8_t tmp[3];
-    
+
     DMSG("\nRead:  ");
-    
+
     /** Frame Preamble and Start Code */
     if(receive(tmp, 3, timeout)<=0){
         return PN532_TIMEOUT;
@@ -95,7 +95,7 @@ int16_t PN532_SWHSU::readResponse(uint8_t buf[], uint8_t len, uint16_t timeout)
         DMSG("Preamble error");
         return PN532_INVALID_FRAME;
     }
-    
+
     /** receive length and check */
     uint8_t length[2];
     if(receive(length, 2, timeout) <= 0){
@@ -109,7 +109,7 @@ int16_t PN532_SWHSU::readResponse(uint8_t buf[], uint8_t len, uint16_t timeout)
     if( length[0] > len){
         return PN532_NO_SPACE;
     }
-    
+
     /** receive command byte */
     uint8_t cmd = command + 1;               // response command
     if(receive(tmp, 2, timeout) <= 0){
@@ -119,7 +119,7 @@ int16_t PN532_SWHSU::readResponse(uint8_t buf[], uint8_t len, uint16_t timeout)
         DMSG("Command error");
         return PN532_INVALID_FRAME;
     }
-    
+
     if(receive(buf, length[0], timeout) != length[0]){
         return PN532_TIMEOUT;
     }
@@ -127,7 +127,7 @@ int16_t PN532_SWHSU::readResponse(uint8_t buf[], uint8_t len, uint16_t timeout)
     for(uint8_t i=0; i<length[0]; i++){
         sum += buf[i];
     }
-    
+
     /** checksum and postamble */
     if(receive(tmp, 2, timeout) <= 0){
         return PN532_TIMEOUT;
@@ -136,7 +136,7 @@ int16_t PN532_SWHSU::readResponse(uint8_t buf[], uint8_t len, uint16_t timeout)
         DMSG("Checksum error");
         return PN532_INVALID_FRAME;
     }
-    
+
     return length[0];
 }
 
@@ -144,14 +144,14 @@ int8_t PN532_SWHSU::readAckFrame()
 {
     const uint8_t PN532_ACK[] = {0, 0, 0xFF, 0, 0xFF, 0};
     uint8_t ackBuf[sizeof(PN532_ACK)];
-    
+
     DMSG("\nAck: ");
-    
+
     if( receive(ackBuf, sizeof(PN532_ACK), PN532_ACK_WAIT_TIME) <= 0 ){
         DMSG("Timeout\n");
         return PN532_TIMEOUT;
     }
-    
+
     if( memcmp(ackBuf, PN532_ACK, sizeof(PN532_ACK)) ){
         DMSG("Invalid\n");
         return PN532_INVALID_ACK;
@@ -171,7 +171,7 @@ int8_t PN532_SWHSU::receive(uint8_t *buf, int len, uint16_t timeout)
   int read_bytes = 0;
   int ret;
   unsigned long start_millis;
-  
+
   while (read_bytes < len) {
     start_millis = millis();
     do {
@@ -180,7 +180,7 @@ int8_t PN532_SWHSU::receive(uint8_t *buf, int len, uint16_t timeout)
         break;
      }
     } while((timeout == 0) || ((millis()- start_millis ) < timeout));
-    
+
     if (ret < 0) {
         if(read_bytes){
             return read_bytes;

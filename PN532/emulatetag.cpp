@@ -9,7 +9,7 @@
 #include "emulatetag.h"
 #include "PN532_debug.h"
 
-#include <string.h>
+#include <cstring>
 
 #define MAX_TGREAD
 
